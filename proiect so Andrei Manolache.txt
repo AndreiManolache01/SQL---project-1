@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Numele fișierului CSV
+csv_file="milionari.csv"
+
+# Obținere cel mai mare ID
+ID_maxim() {
+    max=$(tail -n +2 "$csv_file" | cut -d '|' -f1 | sort -n | tail -n 1)
+    echo "$max"
+}
+
+# Adăugare înregistrare
+adaugare_milionar() {
+    echo "Introduceți numele: "; read nume
+    echo "Introduceți domeniul: "; read domeniul
+    echo "Introduceți valoarea netă (milioane USD): "; read valoare_neta
+
+    max=$(ID_maxim)
+    if [[ -z $max ]]; then
+        ID_nou=1
+    else
+        ID_nou=$((max + 1))
+    fi
+
+    echo "$ID_nou | $nume | $domeniul | $valoare_neta" >> "$csv_file"
+    echo "Gata!"
+}
+
+# Ștergere înregistrare după ID
+stergere_milionar() {
+    echo "Introduceți ID-ul înregistrării pe care doriți să o ștergeți:"
+    read id
+
+    rec=$(awk -F '|' -v id="$id" '($1 == id) {print}' "$csv_file")
+
+    if [[ -z $rec ]]; then
+        echo "Nu există această înregistrare cu ID-ul specificat."
+    else
+        temp_file="temp.csv"
+        awk -F '|' -v id="$id" '($1 != id) {print}' "$csv_file" > "$temp_file"
+        mv "$temp_file" "$csv_file"
+        echo "Înregistrarea cu ID-ul $id a fost ștearsă!"
+        > "$temp_file"
+    fi
+}
+
+# Afisare continut fisier CSV
+afisare_fisier_CSV() {
+    echo "Continutul fișierului CSV:"
+    echo
+    cat "$csv_file"
+}
+
+# Extrage, sortează și afișează înregistrarile după valoarea netă
+extrage_sortat() {
+    echo "Introduceți numărul de înregistrări dorite:"
+    read numar
+
+    echo "Cele $numar cele mai bogate persoane:"
+    echo
+
+    tail -n +2 "$csv_file" | sort -t '|' -k4nr | head -n "$numar" | cut -d '|' -f2,3,4
+}
+
+# Meniu pentru acțiuni
+afisare_meniu() {
+    echo "-------------------------------------"
+    echo
+    echo "1. Adăugare milionar"
+    echo "2. Ștergere milionar"
+    echo "3. Afișare conținut"
+    echo "4. Extrage și sortează după valoarea netă"
+    echo "0. EXIT"
+    echo
+    echo "-------------------------------------"
+}
+
+# Apelarea funcțiilor în funcție de opțiunea selectată
+while true; do
+    afisare_meniu
+    read -p "Introduceți opțiunea: " optiune
+    case $optiune in
+        1) adaugare_milionar ;;
+        2) stergere_milionar ;;
+        3) afisare_fisier_CSV ;;
+        4) extrage_sortat ;;
+        0) break ;;
+        *) echo "Opțiune invalidă!";;
+    esac
+    sleep 2
+    echo
+done
